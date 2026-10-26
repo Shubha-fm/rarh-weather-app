@@ -3,7 +3,7 @@
 import os
 import secrets
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, send_from_directory
 
 from . import auth, prices
 from .api import bp as api_bp
@@ -14,6 +14,7 @@ from .ml import WeatherModel
 BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEFAULT_MODEL_PATH = os.path.join(BACKEND_DIR, "models", "model.joblib")
 DEFAULT_DATABASE = os.path.join(BACKEND_DIR, "data", "rarh.db")
+DEFAULT_FRONTEND_DIR = os.path.join(os.path.dirname(BACKEND_DIR), "frontend")
 
 
 def _secret_key(path):
@@ -45,6 +46,10 @@ def create_app(config=None):
         CORS_ORIGINS=os.environ.get("CORS_ORIGINS", "*"),
         # Optional free key from data.gov.in. With it, market prices come from the official daily mandi data.
         DATA_GOV_API_KEY=os.environ.get("DATA_GOV_API_KEY", ""),
+        # The backend also serves the web page from the frontend folder, so one service can host everything.
+        # Set SERVE_FRONTEND=0 to serve only the API.
+        SERVE_FRONTEND=os.environ.get("SERVE_FRONTEND", "1") != "0",
+        FRONTEND_DIR=os.environ.get("FRONTEND_DIR", DEFAULT_FRONTEND_DIR),
         TOKEN_MAX_AGE=7 * 24 * 3600,  # a login lasts 7 days
         LAT_RANGE=(20.0, 27.0),
         LON_RANGE=(82.0, 90.0),
@@ -62,6 +67,21 @@ def create_app(config=None):
     app.register_blueprint(api_bp)
     app.register_blueprint(auth.bp)
     app.register_blueprint(prices.bp)
+
+    frontend = app.config["FRONTEND_DIR"]
+    if app.config["SERVE_FRONTEND"] and os.path.isfile(os.path.join(frontend, "index.html")):
+        # Only the page and its css and js folders are served. send_from_directory refuses paths that climb out of them.
+        @app.get("/")
+        def home_page():
+            return send_from_directory(frontend, "index.html")
+
+        @app.get("/css/<path:name>")
+        def css_files(name):
+            return send_from_directory(os.path.join(frontend, "css"), name)
+
+        @app.get("/js/<path:name>")
+        def js_files(name):
+            return send_from_directory(os.path.join(frontend, "js"), name)
 
     @app.errorhandler(ApiError)
     def handle_api_error(err):

@@ -75,14 +75,23 @@ class WeatherModel:
 
     @classmethod
     def load_or_train(cls, path):
-        """Use the saved model if it exists and loads, otherwise train a new one and save it."""
+        """Use the saved model if it loads and was made with this scikit-learn version, otherwise train a new one.
+
+        A model file made by another scikit-learn version can load without an error and still behave differently,
+        so a version mismatch triggers a retrain (a few seconds) instead of trusting the old file.
+        """
         if os.path.exists(path):
             try:
-                return cls.load(path)
+                model = cls.load(path)
+                if model.meta.get("scikit_learn") == sklearn.__version__:
+                    return model
             except Exception:
-                pass  # a model saved by another scikit-learn version: retrain below
+                pass  # unreadable file: retrain below
         model = cls.train()
-        model.save(path)
+        try:
+            model.save(path)
+        except OSError:
+            pass  # folder is read-only: keep the new model in memory for this run
         return model
 
     # ---- prediction -----------------------------------------------------------------------

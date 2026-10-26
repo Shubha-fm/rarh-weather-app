@@ -8,7 +8,10 @@ from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import sklearn  # noqa: E402
+
 from app import create_app, prices  # noqa: E402
+from app.ml import WeatherModel  # noqa: E402
 
 _TMP = None
 _MODEL_PATH = None
@@ -80,6 +83,64 @@ class SecretKeyTests(unittest.TestCase):
             self.assertEqual(app.config["SECRET_KEY"], "from-the-environment")
             self.assertEqual(self._register_and_login(app.test_client()).status_code, 200)
             self.assertFalse(os.path.exists(os.path.join(folder, "secret.key")))
+
+
+class HostingTests(Base):
+    """The backend serves the web page, so one service can host the whole app."""
+
+    def test_page_and_assets_are_served(self):
+        page = self.client.get("/")
+        self.assertEqual(page.status_code, 200)
+        self.assertIn(b"Rarh Weather", page.data)
+        self.assertEqual(self.client.get("/css/styles.css").status_code, 200)
+        self.assertEqual(self.client.get("/js/app.js").status_code, 200)
+        self.assertIn(b"API_BASE", self.client.get("/js/config.js").data)
+
+    def test_nothing_outside_the_page_folders_is_served(self):
+        urls = [
+            "/js/../../backend/run.py",
+            "/js/%2e%2e/%2e%2e/backend/app/data.py",
+            "/css/..%2f..%2fbackend%2frun.py",
+            "/run.py",
+            "/backend/app/data.py",
+            "/data/rarh.db",
+        ]
+        for url in urls:
+            r = self.client.get(url)
+            self.assertEqual(r.status_code, 404, url)
+            self.assertNotIn(b"STATIONS", r.data, url)
+
+    def test_api_still_wins_over_the_page(self):
+        self.assertEqual(self.client.get("/api/v1/health").get_json()["status"], "ok")
+        self.assertEqual(self.client.get("/api/v1/nothing").get_json()["error"]["code"], "not_found")
+
+    def test_can_serve_api_only(self):
+        app = create_app({"MODEL_PATH": _MODEL_PATH, "DATABASE": os.path.join(_TMP.name, "apionly.db"), "SECRET_KEY": "k", "SERVE_FRONTEND": False})
+        self.assertEqual(app.test_client().get("/").status_code, 404)
+        self.assertEqual(app.test_client().get("/api/v1/health").status_code, 200)
+
+
+class ModelFileTests(unittest.TestCase):
+    def test_model_from_another_scikit_learn_version_is_retrained(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = os.path.join(folder, "model.joblib")
+            old = WeatherModel.load(_MODEL_PATH)
+            old.meta = dict(old.meta, scikit_learn="0.0.1")
+            old.save(path)
+            fresh = WeatherModel.load_or_train(path)
+            self.assertEqual(fresh.meta["scikit_learn"], sklearn.__version__)
+            self.assertEqual(WeatherModel.load(path).meta["scikit_learn"], sklearn.__version__)  # the file was replaced
+
+    def test_matching_version_is_loaded_as_is(self):
+        first = WeatherModel.load_or_train(_MODEL_PATH)
+        again = WeatherModel.load_or_train(_MODEL_PATH)
+        self.assertEqual(first.meta["trained_at"], again.meta["trained_at"])
+
+    def test_read_only_folder_still_gives_a_model(self):
+        missing = os.path.join(tempfile.gettempdir(), "no-such-model-file.joblib")
+        with mock.patch.object(WeatherModel, "save", side_effect=PermissionError("read-only")):
+            model = WeatherModel.load_or_train(missing)
+        self.assertGreater(model.predict(23.3, 85.3, [100])["tmax"][0], 20)
 
 
 class PublicTests(Base):

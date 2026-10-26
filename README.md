@@ -31,7 +31,9 @@ cd frontend
 python -m http.server 5500
 ```
 
-Open http://localhost:5500. If the backend runs somewhere else, change `API_BASE` in `frontend/js/config.js`.
+Open http://localhost:5500. The page finds the backend on this computer by itself.
+
+**Or use one terminal.** The backend also serves the web page, so after `python run.py` you can simply open http://127.0.0.1:8000. This is how the hosted site works too.
 
 ## What the farmer sees
 
@@ -72,6 +74,8 @@ Open http://localhost:5500. If the backend runs somewhere else, change `API_BASE
 | `CORS_ORIGINS` | Website address allowed to call the API | `*` (any) |
 | `DATA_GOV_API_KEY` | Turns on live mandi prices | off |
 | `MODEL_PATH` | Where the trained model file is | `backend/models/model.joblib` |
+| `SERVE_FRONTEND` | Set to `0` to serve only the API, not the web page | `1` |
+| `FRONTEND_DIR` | Folder with the web page | `frontend/` next to `backend/` |
 | `HOST`, `PORT` | Where `run.py` listens | `127.0.0.1`, `8000` |
 
 ## API
@@ -101,9 +105,50 @@ python -m unittest discover -s tests
 
 The tests cover registration, login, lockout, token expiry, the weather model, sample and live prices, and starting the app with no configured key.
 
-## Putting it on a real server
+## Putting it on the internet
 
-- Serve the backend with a production server, for example `pip install gunicorn` then `gunicorn "app:create_app()" --bind 0.0.0.0:8000`, behind HTTPS.
-- Set `SECRET_KEY` and set `CORS_ORIGINS` to your website's address.
-- Back up the file named in `DATABASE`. It holds all accounts.
-- The page keeps the login token in the browser's local storage. Use HTTPS so it cannot be read on the way.
+The backend serves the web page as well as the API, so one service hosts everything. Visitors open the site's address and the page talks to the API on that same address. You do not need to change `frontend/js/config.js`.
+
+You will store farmers' names and phone numbers. Use a host that gives you HTTPS (the one below does), keep `backend/data/` private, and back up the database file.
+
+### Free option: PythonAnywhere
+
+PythonAnywhere keeps your files between restarts, so the accounts survive. Render's free service does not: its local files, including a SQLite database, are deleted on every restart, redeploy and spin-down ([Render docs](https://render.com/docs/free)).
+
+1. Create a free account at https://www.pythonanywhere.com. Your site will be `https://YOURUSERNAME.pythonanywhere.com`.
+2. Open **Consoles**, start a **Bash** console, and download the project (the repository must be public, or use a GitHub access token):
+   ```
+   git clone https://github.com/YOUR-NAME/rarh-weather-app.git
+   ```
+3. Open the **Web** tab, click **Add a new web app**, choose **Manual configuration**, and pick the newest Python 3 version offered (3.10 or newer).
+4. Back in the Bash console, install the packages with the pip that matches that version (for example `pip3.12` for Python 3.12). Packages that are already there are skipped:
+   ```
+   cd rarh-weather-app/backend
+   pip3.12 install --user -r requirements.txt
+   ```
+5. On the **Web** tab, click the link to the **WSGI configuration file**, delete everything in it, and paste this (replace `YOURUSERNAME`):
+   ```python
+   import os, sys
+   sys.path.insert(0, "/home/YOURUSERNAME/rarh-weather-app/backend")
+   # Optional, for live mandi prices (free key from data.gov.in). Keep this key out of GitHub.
+   # os.environ["DATA_GOV_API_KEY"] = "your-key"
+   from app import create_app
+   application = create_app()
+   ```
+6. Click the green **Reload** button on the **Web** tab and open your site's address. The first visit can take a few seconds.
+7. To update the site after you push changes to GitHub: in a Bash console run `cd ~/rarh-weather-app && git pull`, then click **Reload**.
+
+Things to know about the free plan:
+- Free accounts can only reach websites on PythonAnywhere's [allowlist](https://www.pythonanywhere.com/whitelist/). `api.data.gov.in`, the live price source, is on it, so live prices should work once you add the key. Check the market screen after setting it up: the banner says whether the prices are live or sample.
+- The Web tab shows an expiry date for free sites and a button to extend it. Press it before the date or the site is switched off.
+- The free plan has a limited daily CPU allowance. That is plenty for a small group of farmers, but a large number of users needs a paid plan.
+
+### Other hosts
+
+Any host that runs Python works, provided it gives you a disk that is kept between restarts for the database file (set `DATABASE` to a path on that disk). Start command:
+
+```
+gunicorn "app:create_app()" --chdir backend --bind 0.0.0.0:$PORT
+```
+
+Set `SECRET_KEY` to a long random value so logins survive restarts and new servers.
