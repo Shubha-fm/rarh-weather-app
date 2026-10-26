@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Rarh Weather</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Hind:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="page">
+  <header class="top">
+    <div class="brand"><b id="brand" data-i="brand">Rarh Weather</b><span data-i="region">Rarh Bengal · Jharkhand</span></div>
+    <div class="tools">
+      <span class="pill" role="status" aria-live="polite"><i class="dot busy" id="dot"></i><span id="status">…</span></span>
+      <div class="userbox" id="userbox" hidden>
+        <span><b class="uname" id="u-name"></b> <span class="uid-s" id="u-id"></span></span>
+        <button type="button" class="linkbtn" id="logout" data-i="logout">Log out</button>
+      </div>
+      <div class="seg" id="langsw" hidden role="group" aria-label="Language">
+        <button type="button" data-l="en" lang="en">EN</button>
+        <button type="button" data-l="bn" lang="bn">বাংলা</button>
+        <button type="button" data-l="hi" lang="hi">हिन्दी</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Login, register, and the screen that shows the new user ID. These show all three languages. -->
+  <section id="stage-auth" class="auth" hidden>
+    <div class="hero">
+      <h1><span lang="en">Weather</span><span class="w2" lang="bn">আবহাওয়া</span><span lang="hi">मौसम</span></h1>
+      <p class="tri" data-tri="tagline" data-stack></p>
+    </div>
+
+    <div class="auth-card">
+      <section id="login">
+        <h2 class="tri" data-tri="login"></h2>
+        <form id="login-form" novalidate>
+          <div class="fields one">
+            <div class="field">
+              <label for="lg-id" class="tri" data-tri="userId"></label>
+              <input id="lg-id" type="text" autocomplete="username" autocapitalize="characters" spellcheck="false" placeholder="RF123456">
+            </div>
+            <div class="field">
+              <label for="lg-pw" class="tri" data-tri="password"></label>
+              <div class="pwrow">
+                <input id="lg-pw" type="password" autocomplete="current-password">
+                <button type="button" class="btn ghost" data-toggle="lg-pw"><span class="tri" data-tri="show"></span></button>
+              </div>
+            </div>
+          </div>
+          <p class="err tri" id="lg-err" role="alert"></p>
+          <button type="submit" class="btn primary block" id="lg-submit"><span class="tri" data-tri="login"></span><span aria-hidden="true">→</span></button>
+          <p class="switch"><button type="button" class="linkbtn" id="to-register"><span class="tri" data-tri="createAcct"></span></button></p>
+        </form>
+      </section>
+
+      <section id="register" hidden>
+        <h2 class="tri" data-tri="register"></h2>
+        <form id="register-form" novalidate>
+          <div class="fields one">
+            <div class="field">
+              <label for="rg-name" class="tri" data-tri="name"></label>
+              <input id="rg-name" type="text" autocomplete="name" maxlength="60">
+            </div>
+            <div class="field">
+              <label for="rg-phone" class="tri" data-tri="phone"></label>
+              <input id="rg-phone" type="tel" inputmode="numeric" autocomplete="tel" maxlength="16" placeholder="98XXXXXXXX">
+              <span class="hint tri" data-tri="phoneHint"></span>
+            </div>
+            <div class="field">
+              <label for="rg-pw" class="tri" data-tri="password"></label>
+              <div class="pwrow">
+                <input id="rg-pw" type="password" autocomplete="new-password" maxlength="128">
+                <button type="button" class="btn ghost" data-toggle="rg-pw"><span class="tri" data-tri="show"></span></button>
+              </div>
+              <span class="hint tri" data-tri="pwHint"></span>
+            </div>
+          </div>
+          <p class="err tri" id="rg-err" role="alert"></p>
+          <button type="submit" class="btn primary block" id="rg-submit"><span class="tri" data-tri="register"></span><span aria-hidden="true">→</span></button>
+          <p class="switch"><button type="button" class="linkbtn" id="to-login-from-register"><span class="tri" data-tri="haveId"></span></button></p>
+        </form>
+      </section>
+
+      <section id="registered" hidden>
+        <h2 class="tri" data-tri="registeredTitle"></h2>
+        <p class="id-label tri" data-tri="yourId"></p>
+        <div class="uid" id="new-uid" tabindex="0"></div>
+        <div class="actions" style="margin:14px 0 6px">
+          <button type="button" class="btn ghost" id="copy-id"><span class="tri" data-tri="copy"></span></button>
+          <span class="muted" id="copy-note" role="status"></span>
+        </div>
+        <p class="warn-note tri" data-tri="writeDown" data-stack></p>
+        <button type="button" class="btn primary block" id="to-login"><span class="tri" data-tri="toLogin"></span><span aria-hidden="true">→</span></button>
+      </section>
+    </div>
+  </section>
+
+  <!-- Language, chosen after login -->
+  <section id="stage-lang" hidden>
+    <div class="hero">
+      <h1><span lang="en">Weather</span><span class="w2" lang="bn">আবহাওয়া</span><span lang="hi">मौसम</span></h1>
+      <p class="tri" id="lang-welcome" data-stack></p>
+    </div>
+    <div class="prompt"><span lang="en">Choose your language</span><span class="muted" lang="bn">আপনার ভাষা বেছে নিন</span><span class="muted" lang="hi">अपनी भाषा चुनें</span></div>
+    <div class="langs">
+      <button type="button" class="lang-card" data-l="en" lang="en"><span class="nm">English</span><span class="en">English</span></button>
+      <button type="button" class="lang-card" data-l="bn" lang="bn"><span class="nm">বাংলা</span><span class="en">Bengali</span></button>
+      <button type="button" class="lang-card" data-l="hi" lang="hi"><span class="nm">हिन्दी</span><span class="en">Hindi</span></button>
+    </div>
+  </section>
+
+  <!-- Home, weather and market prices -->
+  <div class="layout" id="stage-main" hidden>
+    <div class="col-main">
+
+      <section id="home" hidden>
+        <h2 id="hm-greet"></h2>
+        <p class="lead" data-i="homeBody2"></p>
+        <div class="tiles">
+          <button type="button" class="tile primary" id="go-form"><b data-i="predictBtn"></b><span class="arrow" aria-hidden="true">→</span></button>
+          <button type="button" class="tile" id="go-market"><b data-i="marketBtn"></b><span class="arrow" aria-hidden="true">→</span></button>
+        </div>
+        <button type="button" class="linkbtn" id="home-back" data-i="changeLang"></button>
+        <ul class="facts"><li id="fact-st"></li><li id="fact-ml"></li></ul>
+      </section>
+
+      <section id="form" hidden>
+        <h2 data-i="formTitle"></h2>
+        <p class="lead" data-i="formLead"></p>
+        <form id="f" novalidate>
+          <div class="fields">
+            <div class="field"><label for="lat" data-i="lat"></label><input id="lat" type="number" step="any" inputmode="decimal" value="23.34"><span class="hint" data-i="latHint"></span></div>
+            <div class="field"><label for="lon" data-i="lon"></label><input id="lon" type="number" step="any" inputmode="decimal" value="85.31"><span class="hint" data-i="lonHint"></span></div>
+            <div class="field wide"><label for="date" data-i="date"></label><input id="date" type="date"></div>
+          </div>
+          <p class="chips-l" data-i="quick"></p>
+          <div class="chips" id="chips"></div>
+          <p class="err" id="err" role="alert"></p>
+          <div class="actions">
+            <button type="submit" class="btn primary" id="submit"><span id="submit-t" data-i="go"></span><span aria-hidden="true">→</span></button>
+            <button type="button" class="linkbtn" id="form-back" data-i="back"></button>
+          </div>
+        </form>
+      </section>
+
+      <section id="result" hidden aria-live="polite">
+        <p class="eyebrow" id="rs-where"></p>
+        <h2 class="cond" id="rs-cond"></h2>
+        <p class="season" id="rs-season"></p>
+        <div class="advice" id="rs-advice-box" hidden>
+          <b data-i="adviceTitle"></b>
+          <ul id="rs-advice"></ul>
+        </div>
+        <div class="big">
+          <div class="hi"><span class="v" id="rs-hi"></span><span class="l" data-i="hi"></span></div>
+          <div class="lo"><span class="v" id="rs-lo"></span><span class="l" data-i="lo"></span></div>
+        </div>
+        <div class="meters">
+          <div class="meter"><div class="row"><span data-i="rainP"></span><span id="v-rain"></span></div><div class="bar"><i id="b-rain"></i></div></div>
+          <div class="meter"><div class="row"><span data-i="hum"></span><span id="v-hum"></span></div><div class="bar"><i id="b-hum"></i></div></div>
+          <div class="meter"><div class="row"><span data-i="rainA"></span><span id="v-amt"></span></div></div>
+        </div>
+        <p class="ribbon-l" data-i="seasonL"></p>
+        <div class="ribbon" id="ribbon"></div>
+        <div class="chart-wrap">
+          <div class="chart-h"><b data-i="chartTitle"></b><span id="readout"></span></div>
+          <div id="chart"></div>
+        </div>
+        <dl class="meta">
+          <div><dt data-i="nearest"></dt><dd id="m-near"></dd></div>
+          <div><dt data-i="conf"></dt><dd id="m-conf"></dd></div>
+          <div><dt data-i="modelL"></dt><dd id="m-model"></dd></div>
+        </dl>
+        <p class="note" id="note"></p>
+        <div class="actions" style="margin-top:20px">
+          <button type="button" class="btn ghost" id="again" data-i="another"></button>
+          <button type="button" class="linkbtn" id="result-home" data-i="back"></button>
+        </div>
+      </section>
+
+      <section id="market" hidden>
+        <div class="mk-top">
+          <h2 data-i="marketTitle"></h2>
+          <button type="button" class="linkbtn" id="market-back" data-i="back"></button>
+        </div>
+        <p class="eyebrow" id="mk-date"></p>
+        <p class="lead" data-i="marketLead"></p>
+        <div class="banner" id="mk-banner" hidden><i class="bd"></i><span id="mk-banner-t"></span></div>
+
+        <div class="controls">
+          <span class="ctl-l" data-i="mkMarket"></span>
+          <div class="chips" id="mk-markets"></div>
+        </div>
+        <div class="controls">
+          <div class="seg" id="mk-tabs" role="group">
+            <button type="button" data-g="all" data-i="tAll"></button>
+            <button type="button" data-g="vegetable" data-i="tVeg"></button>
+            <button type="button" data-g="crop" data-i="tCrop"></button>
+          </div>
+          <span class="ctl-l" data-i="sortBy"></span>
+          <div class="seg" id="mk-sort" role="group">
+            <button type="button" data-s="price" data-i="sPrice"></button>
+            <button type="button" data-s="name" data-i="sName"></button>
+            <button type="button" data-s="change" data-i="sChange"></button>
+          </div>
+        </div>
+
+        <p class="err" id="mk-err" role="alert"></p>
+        <div class="movers" id="mk-movers"></div>
+        <ul class="prices" id="mk-list" aria-live="polite"></ul>
+        <p class="note" data-i="unitNote"></p>
+      </section>
+
+    </div>
+    <aside class="col-side">
+      <div class="card">
+        <div class="map-title"><span data-i="mapTitle"></span><span class="mono" id="map-coord"></span></div>
+        <svg id="map" viewBox="0 0 400 300" role="img" aria-label="Map of reference stations"></svg>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/api.js"></script>
+<script src="js/map.js"></script>
+<script src="js/chart.js"></script>
+<script src="js/market.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
